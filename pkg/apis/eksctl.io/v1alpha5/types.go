@@ -1789,7 +1789,7 @@ func HasMixedInstances(ng *NodeGroup) bool {
 
 // IsAMI returns true if the argument is an AMI ID
 func IsAMI(amiFlag string) bool {
-	return strings.HasPrefix(amiFlag, "ami-")
+	return strings.HasPrefix(amiFlag, "ami-") || strings.HasPrefix(amiFlag, "resolve:ssm:")
 }
 
 // FargateProfile defines the settings used to schedule workload onto Fargate.
