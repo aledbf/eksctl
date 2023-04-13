@@ -92,9 +92,34 @@ func (n *NodeGroupService) Normalize(ctx context.Context, nodePools []api.NodePo
 		logger.Info("nodegroup %q will use %q [%s/%s]", ng.Name, ng.AMI, ng.AMIFamily, clusterConfig.Metadata.Version)
 
 		if ng.AMI != "" {
+			// check if the AMI uses SSM
+			ami := ng.AMI
+
+			re := regexp.MustCompile("resolve:ssm:(.*)")
+
+			matches := re.FindStringSubmatch(ami)
+			if len(matches) == 2 {
+				output, err := provider.SSM().GetParameter(ctx, &ssm.GetParameterInput{
+					Name: aws.String(matches[1]),
+				})
+				if err != nil {
+					return fmt.Errorf("error getting AMI from SSM Parameter Store: %w", err)
+				}
+
+				if output == nil || output.Parameter == nil || *output.Parameter.Value == "" {
+					return fmt.Errorf("Invalid parameter content")
+				}
+
+				// temporarily replace the AMI value
+				ng.AMI = *output.Parameter.Value
+			}
+
 			if err := ami.Use(ctx, n.provider.EC2(), ng); err != nil {
 				return err
 			}
+
+			// reset the value
+			ng.AMI = ami
 		}
 		// load or use SSH key - name includes cluster name and the
 		// fingerprint, so if unique keys are provided, each will get
