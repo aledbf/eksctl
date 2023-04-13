@@ -10,7 +10,7 @@ import (
 	"github.com/aws/amazon-ec2-instance-selector/v2/pkg/bytequantity"
 	"github.com/aws/amazon-ec2-instance-selector/v2/pkg/selector"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 	"github.com/weaveworks/eksctl/pkg/outposts"
 	"github.com/weaveworks/eksctl/pkg/ssh"
+	"github.com/weaveworks/eksctl/pkg/ami"
 	"github.com/weaveworks/eksctl/pkg/utils/tasks"
 )
 
@@ -94,13 +95,13 @@ func (n *NodeGroupService) Normalize(ctx context.Context, nodePools []api.NodePo
 
 		if ng.AMI != "" {
 			// check if the AMI uses SSM
-			ami := ng.AMI
+			originalAMI := ng.AMI
 
 			re := regexp.MustCompile("resolve:ssm:(.*)")
 
-			matches := re.FindStringSubmatch(ami)
+			matches := re.FindStringSubmatch(originalAMI)
 			if len(matches) == 2 {
-				output, err := provider.SSM().GetParameter(ctx, &ssm.GetParameterInput{
+				output, err := n.provider.SSM().GetParameter(ctx, &ssm.GetParameterInput{
 					Name: aws.String(matches[1]),
 				})
 				if err != nil {
@@ -120,7 +121,7 @@ func (n *NodeGroupService) Normalize(ctx context.Context, nodePools []api.NodePo
 			}
 
 			// reset the value
-			ng.AMI = ami
+			ng.AMI = originalAMI
 		}
 		// load or use SSH key - name includes cluster name and the
 		// fingerprint, so if unique keys are provided, each will get
