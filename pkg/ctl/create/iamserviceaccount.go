@@ -22,6 +22,10 @@ func createIAMServiceAccountCmd(cmd *cmdutils.Cmd) {
 	})
 }
 
+var (
+	oIDCThumbprint string
+)
+
 func createIAMServiceAccountCmdWithRunFunc(cmd *cmdutils.Cmd, runFunc func(cmd *cmdutils.Cmd, overrideExistingServiceAccounts, roleOnly bool) error) {
 	cfg := api.NewClusterConfig()
 	cmd.ClusterConfig = cfg
@@ -52,6 +56,7 @@ func createIAMServiceAccountCmdWithRunFunc(cmd *cmdutils.Cmd, runFunc func(cmd *
 		fs.StringVar(&serviceAccount.AttachRoleARN, "attach-role-arn", "", "ARN of the role to attach to the iamserviceaccount")
 		fs.StringVar(&serviceAccount.RoleName, "role-name", "", "Set a custom name for the created role")
 		fs.BoolVar(roleOnly, "role-only", false, "disable service account creation, only the role will be created")
+		fs.StringVar(&oIDCThumbprint, "oidc-thumbprint", "", "OIDC Thumbprint")
 
 		cmdutils.AddStringToStringVarPFlag(fs, &serviceAccount.Tags, "tags", "", map[string]string{}, "Used to tag the IAM role")
 
@@ -76,6 +81,10 @@ func doCreateIAMServiceAccount(cmd *cmdutils.Cmd, overrideExistingServiceAccount
 
 	cfg := cmd.ClusterConfig
 	meta := cmd.ClusterConfig.Metadata
+
+	if oIDCThumbprint !=""{
+		cfg.IAM.OIDCThumbprint = &oIDCThumbprint
+	}
 
 	printer := printers.NewJSONPrinter()
 
